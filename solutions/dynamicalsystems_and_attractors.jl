@@ -35,3 +35,32 @@ for u in u0s
     lines!(ax, t, X[:, 1])
 end
 fig
+
+# %% Exercise 2
+using DynamicalSystems, GLMakie
+
+@inbounds function ikedamap_rule(u, p, n)
+    a,b,c,d  = p
+    t = c - d/(1 + u[1]^2 + u[2]^2)
+    dx = a + b*(u[1]*cos(t) - u[2]*sin(t))
+    dy = b*( u[1]*sin(t) + u[2]*cos(t) )
+    return SVector{2}(dx, dy)
+end
+
+u0 = [1.0, 1.0]
+p1 = (a=1.0, b=1.0, c=0.4, d =6.0)
+p2 = [6, 0.9, 3.1, 6]
+ikedamap = DeterministicIteratedMap(ikedamap_rule, u0, p2)
+
+X, t = trajectory(ikedamap, 10_000; Ttr = 100)
+
+fig, = scatter(columns(X)...)
+display(fig)
+
+@show grassberger_proccacia_dim(X)
+
+X1 = StateSpaceSet([p for p in X if p[1] < 2.5])
+X2 = StateSpaceSet([p for p in X if p[1] > 2.5])
+
+@show grassberger_proccacia_dim(X1)
+@show grassberger_proccacia_dim(X2)
