@@ -1,3 +1,36 @@
+# exercise 1
+babystep(x, y) = 0.5(x + y/x)
+function babylon(y, ε, x0 = 1.0)
+    n, x, xn = 0, x0, Inf
+    while abs(x - xn) > ε
+        xn = x
+        x = babystep(xn, y)
+        n += 1
+    end
+    return n
+end
+babylon(2, 1e-12)
+
+# exercise 2
+function count_nucleotides(strand::AbstractString)
+    occurence = Dict('A' => 0, 'C' => 0, 'G' => 0, 'T' => 0)
+    for n in strand
+        haskey(occurence, n) || error("unknown nucleotide $(n)!")
+        occurence[n] += 1
+    end
+    return occurence
+end
+count_nucleotides("AGAGAGATCCCTTA")
+count_nucleotides("ATATATAGGCCAX")
+
+# exercise 3
+function fibonacci(n)
+    n ∈ (1, 2) && return 1
+    return fibonacci(n-1) + fibonacci(n-2)
+end
+fibonacci(5)
+fibonacci.(1:8)
+
 # Plotting, ex. 1
 using Random: Xoshiro
 rng = Xoshiro(1234)
