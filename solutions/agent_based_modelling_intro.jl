@@ -186,7 +186,6 @@ model
 
 # %%
 # Visualize
-using InteractiveDynamics
 # This model is too costly to animate in real time. We make a video
 using CairoMakie
 CairoMakie.activate!()
