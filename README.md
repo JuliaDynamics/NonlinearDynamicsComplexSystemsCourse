@@ -1,4 +1,4 @@
-# Nonlinear Dynamics and Complex Systems with Julia
+# Nonlinear Dynamics and Complex Systems with JuliaDynamics
 
 > **Currently still work in progress!**
 
