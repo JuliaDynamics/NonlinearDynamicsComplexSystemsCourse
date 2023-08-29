@@ -1,0 +1,14 @@
+name = "NLDCXSJD"
+
+[deps]
+Attractors = "f3fd9213-ca85-4dba-9dfd-7fc91308fec7"
+CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
+DelayEmbeddings = "5732040d-69e3-5649-938a-b6b4f237613f"
+DynamicalSystems = "61744808-ddfa-5f27-97ff-6e42cc95d634"
+GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
+
+[compat]
+Attractors = "1.8.0"
+DelayEmbeddings = "2.7.2"
+DynamicalSystems = "3"
+julia = "1.9"
