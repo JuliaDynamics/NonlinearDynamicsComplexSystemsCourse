@@ -1,4 +1,7 @@
+
 # %% basins of attraction of multistable predator prey
+using DynamicalSystems
+
 function predator_prey_rule(u, p, t)
     r, c, μ, ν, α, β, χ, δ = p
     N, P = u
@@ -9,45 +12,35 @@ function predator_prey_rule(u, p, t)
 end
 
 u0 = SVector(8.0, 0.01)
-r1, r2 = 1.0, 2.0
 # r, c, μ, ν, α, β, χ, δ = p
-p = [r1, 0.19, 0.03, 0.003, 800, 1.5, 0.004, 2.2]
+p = [2.0, 0.19, 0.03, 0.003, 800, 1.5, 0.004, 2.2]
 
-using OrdinaryDiffEq: Tsit5
-diffeq = (alg = Tsit5(), adaptive = false, dt = 0.05)
+using OrdinaryDiffEq: Rodas5P
+diffeq = (alg = Rodas5P(), abstol = 1e-9, rtol = 1e-9)
 ds = CoupledODEs(predator_prey_rule, u0, p; diffeq)
 
-density = 201
-xg = range(0, 20; length = density)
-yg = range(0, 0.03; length = density)
+density = 101
+xg = range(-0.1, 20; length = density)
+yg = range(-0.0001, 0.03; length = density)
 grid = (xg, yg)
 
-colors = COLORS = [
-    "#7143E0",
-    "#191E44",
-    "#0A9A84",
-]
+basinsgrid = (xg[2:end], yg[2:end])
 
-fig = Figure(resolution = (800, 400))
-ax1 = Axis(fig[1,1]; title = "r = $(r1)", xlabel = "x", ylabel = "y")
-ax2 = Axis(fig[1,2]; title = "r = $(r2)", xlabel = "x", yticklabelsvisible = false)
+mapper = AttractorsViaRecurrences(
+    ds, grid;
+    # Estimation fails if `mx_chk_fnd_att` is too low, e.g., 10
+    # this happens because near y=0 the trajectory slows down very much.
+    # For this Δt value, this means that several integration steps are taken within
+    # the _same_ cell of the grid. Hence, the algorithm counts this as recurrences.
+    # 10 recurrences are very easy to accumulate in this way, and when this happens,
+    # the algorithm switches to "new attractor found" mode and proceeds to (incorrectly)
+    # identify some random cells near y = 0 as attractor cells.
+    mx_chk_fnd_att = 100, Δt = 0.01,
+)
 
-for (j, r) in enumerate((r1, r2))
-    set_parameter!(ds, 1, r)
-    mapper = AttractorsViaRecurrences(
-        ds, grid; mx_chk_fnd_att = 2000, mx_chk_loc_att = 4000
-    )
-    ax = (ax1, ax2)[j]
-    basins, attractors = basins_of_attraction(mapper, grid)
-    heatmap!(ax, xg, yg, basins; colormap = colors)
-    for k ∈ keys(attractors)
-        x, y = columns(attractors[k])
-        scatter!(ax, vec(attractors[k]);
-            color = COLORS[k], markersize = 20,
-            strokewidth = 3, strokecolor = :white
-        )
-    end
-end
+basins, attractors = basins_of_attraction(mapper, basinsgrid)
+
+fig = heatmap_basins_attractors(basinsgrid, basins, attractors)
 
 fig
 
