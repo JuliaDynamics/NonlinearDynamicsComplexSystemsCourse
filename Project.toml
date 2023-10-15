@@ -8,6 +8,7 @@ Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
 DelayEmbeddings = "5732040d-69e3-5649-938a-b6b4f237613f"
 DynamicalSystems = "61744808-ddfa-5f27-97ff-6e42cc95d634"
 GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
+NaNMath = "77ba4419-2d1f-58cd-9bb1-8ffee604a2e3"
 
 [compat]
 Attractors = "1.8.0"
