@@ -1,5 +1,5 @@
 # %% basins of attraction of multistable predator prey
-using DynamicalSystems
+using DynamicalSystems, CairoMakie
 
 function predator_prey_rule(u, p, t)
     r, c, μ, ν, α, β, χ, δ = p
@@ -110,3 +110,91 @@ mean_shock = mean(shocks)
 mean_norm = mean(shock_norms)
 
 scatter(columns(A)...; color = shock_norms)
+
+
+# %% Basin instability in predator pray (phase tipping)
+using DynamicalSystems, CairoMakie
+
+function predator_prey_rule(u, p, t)
+    r, c, μ, ν, α, β, χ, δ = p
+    N, P = u
+    common = α*N*P/(β+N)
+    dN = r*N*(1 - (c/r)*N)*((N-μ)/(N+ν)) - common
+    dP = χ*common - δ*P
+    return SVector(dN, dP)
+end
+
+u0 = SVector(8.0, 0.01)
+# r, c, μ, ν, α, β, χ, δ = p
+p = [2.0, 0.19, 0.03, 0.003, 800, 1.5, 0.004, 2.2]
+
+using OrdinaryDiffEq: Rodas5P
+diffeq = (alg = Rodas5P(), abstol = 1e-9, rtol = 1e-9)
+ds = CoupledODEs(predator_prey_rule, u0, p; diffeq)
+
+density = 101
+xg = range(-0.1, 20; length = density)
+yg = range(-0.0001, 0.03; length = density)
+grid = (xg, yg)
+
+basinsgrid = (xg[2:end], yg[2:end])
+
+sampler, = statespace_sampler(basinsgrid, 12345)
+
+r1 = 1.8
+r2 = 2.5
+set_parameter!(ds, 1, r1)
+
+mapper = AttractorsViaRecurrences(
+    ds, grid;
+    consecutive_recurrences = 5000, Δt = 0.1,
+    force_non_adaptive = true, Ttr = 100.0,
+    sparse = false,
+)
+
+# basins at r1
+# Plot basins before and after
+fig = Figure(resolution = (800, 400))
+basins = []
+attractors = []
+for i in 1:2
+    r = (r1, r2)[i]
+    set_parameter!(ds, 1, r)
+    ax = Axis(fig[1,i]; title = "r = $(r)")
+    basins1, attractors1 = basins_of_attraction(mapper, basinsgrid)
+    heatmap_basins_attractors!(ax, basinsgrid, basins1, attractors1)
+    push!(basins, copy(basins1))
+    push!(attractors, copy(attractors1))
+    Attractors.reset!(mapper)
+end
+fig
+
+# Estimate basin instability
+basins1, basins2 = basins
+attractors1, attractors2 = attractors
+# match:
+rmap = match_statespacesets!(attractors2, attractors1)
+replace!(basins2, rmap...)
+# Estimate overlap basin that point in attractor goes to
+# in fact, you do not need the basins. you can just evolve points
+# on the new attractor... But anyways here we have the basins already.
+
+grid_info = mapper.bsn_nfo.grid_nfo
+
+basin_instabilities = Dict()
+
+for (id, A) in attractors2
+    # estimate overlap with basins1
+    overlaps = zeros(Bool, length(A))
+    for (i, p) in enumerate(A)
+        cartesian_index = Attractors.basin_cell_index(p, grid_info)
+        overlaps[i] = id == basins1[cartesian_index]
+    end
+    basin_instabilities[id] = overlaps
+end
+
+basin_instabilities[1]
+
+# If this is true, there exists basin instability
+any(isequal(false), basin_instabilities[1])
+any(isequal(false), basin_instabilities[2])
