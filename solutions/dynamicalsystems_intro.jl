@@ -1,51 +1,50 @@
 using DynamicalSystems, CairoMakie
+
 # Exercise 1
-
-function predator_prey_rule(u, p, t)
-    r, c, μ, ν, α, β, χ, δ = p
-    N, P = u
-    common = α*N*P/(β+N)
-    dN = r*N*(1 - (c/r)*N)*((N-μ)/(N+ν)) - common
-    dP = χ*common - δ*P
-    return SVector(dN, dP)
+function roessler_rule(u, p, t)
+    x, y, z = u
+    a, b, c = p
+    dx = -y - z
+    dy = x + a*y
+    dz = b + z*(x - c)
+    return SVector(dx, dy, dz)
 end
 
-u0 = SVector(8.0, 0.01)
-r1, r2 = 1.7, 2.5
-# r, c, μ, ν, α, β, χ, δ = p
-p = [r1, 0.19, 0.03, 0.003, 800, 1.5, 0.004, 2.2]
-ds = CoupledODEs(predator_prey_rule, u0, p)
+u0 = [1, -2, 0.1]
+p0 = [0.2, 0.2, 5.0]
+roessler = CoupledODEs(roessler_rule, u0, p0)
 
-u0s = [
-    [5, 0.016],
-    [5, 0.025],
-    [15, 0.012],
-]
-
-fig = Figure()
-ax = Axis(fig[1,1])
-for u in u0s
-    X, t = trajectory(ds, 100.0, u)
-    lines!(ax, t, X[:, 1])
-end
-
-ax = Axis(fig[2,1])
-set_parameter!(ds, 1, r2)
-for u in u0s
-    X, t = trajectory(ds, 100.0, u)
-    lines!(ax, t, X[:, 1])
-end
-fig
+X, t = trajectory(roessler, 1000.0; Ttr = 100, Dt = 0.01)
+lines(columns(X)...; axis = (type = Axis3,))
 
 # %% Exercise 2
-using DynamicalSystems, GLMakie
+as = range(0.1, 0.3; length = 101)
+cs = range(1, 10; length = 101)
 
+function lyapunov_from_params(a, c)
+    set_parameter!(roessler, 1, a)
+    set_parameter!(roessler, 3, c)
+    reinit!(roessler)
+    return lyapunov(roessler, 1000.0; Ttr = 100.0)
+end
+
+# Obtian the exponents
+@time ls = broadcast(lyapunov_from_params, as, cs')
+# Find parameters with positive
+positive_idxs = findall(λ -> abs(λ) > 1e-3, ls)
+params = [(a = as[c[1]], c = cs[c[2]]) for c in positive_idxs]
+# Fraction
+chaotic_fraction = length(params)/length(ls)
+
+heatmap(as, cs, ls)
+
+# %% Exercise 3
 @inbounds function ikedamap_rule(u, p, n)
     a,b,c,d  = p
     t = c - d/(1 + u[1]^2 + u[2]^2)
     dx = a + b*(u[1]*cos(t) - u[2]*sin(t))
     dy = b*( u[1]*sin(t) + u[2]*cos(t) )
-    return SVector{2}(dx, dy)
+    return SVector(dx, dy)
 end
 
 u0 = [1.0, 1.0]
@@ -56,7 +55,6 @@ ikedamap = DeterministicIteratedMap(ikedamap_rule, u0, p2)
 X, t = trajectory(ikedamap, 10_000; Ttr = 100)
 
 fig, = scatter(columns(X)...)
-display(fig)
 
 @show grassberger_proccacia_dim(X)
 
