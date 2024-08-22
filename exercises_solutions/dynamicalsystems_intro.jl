@@ -1,3 +1,4 @@
+import Pkg; Pkg.activate(dirname(@__DIR__))
 using DynamicalSystems, CairoMakie
 
 # Exercise 1
@@ -63,3 +64,44 @@ X2 = StateSpaceSet([p for p in X if p[1] > 2.5])
 
 @show grassberger_proccacia_dim(X1)
 @show grassberger_proccacia_dim(X2)
+
+
+# %% Poincare tristable
+
+function thomas_rule(u, p, t)
+    x,y,z = u
+    b = p[1]
+    xdot = sin(y) - b*x
+    ydot = sin(z) - b*y
+    zdot = sin(x) - b*z
+    return SVector(xdot, ydot, zdot)
+end
+
+thomas = CoupledODEs(thomas_rule, 3rand(3), [0.1665])
+
+pmap = PoincareMap(thomas, (3, 0.0))
+
+X, t = trajectory(pmap, 1000)
+X
+
+# Plot many initial conditions
+    fig = Figure(size = (1000, 400))
+for (i, b) in enumerate((0.16, 0.17, 0.18))
+    set_parameter!(pmap, 1, b)
+    ax = Axis(fig[1,i]; limits = ((-6, 6), (-6, 6)))
+    for j in 1:20
+        reinit!(pmap, 3rand(3))
+        X, t = trajectory(pmap, 10; Ttr = 100)
+        scatter!(ax, X[:, 1], X[:, 2]; color = Cycled(j), markersize = rand()*15 + 5)
+    end
+end
+
+fig
+
+
+# %%
+
+reinit!(pmap, 3rand(3))
+current_state(pmap)
+X, t = trajectory(pmap, 10; Ttr = 100)
+X[end]

@@ -1,3 +1,5 @@
+import Pkg; Pkg.activate(dirname(@__DIR__))
+
 # %% basins of attraction of multistable predator prey
 using DynamicalSystems, CairoMakie
 
@@ -62,7 +64,6 @@ fractions_curves, attractors_info = continuation(
     show_progress = true, samples_per_parameter = 100
 )
 
-# %%
 # Decide how to plot attractors: go from attractor to real number
 using Statistics: mean
 a2r = A -> mean(x[1] for x in A)
@@ -74,42 +75,6 @@ plot_basins_attractors_curves(fractions_curves, attractors_info, a2r, prange)
 id = 2 # id of the periodic attractor (from plot)
 j = findfirst(atts -> length(atts[id]) > 1, attractors_info)
 p_hopf = prange[j]
-
-# %% MFS of Thomas cyclical
-using DynamicalSystems
-
-function thomas_rule(u, p, t)
-    x,y,z = u
-    b = p[1]
-    xdot = sin(y) - b*x
-    ydot = sin(z) - b*y
-    zdot = sin(x) - b*z
-    return SVector(xdot, ydot, zdot)
-end
-
-thomas = CoupledODEs(thomas_rule, ones(3), [0.16])
-xg = yg = zg = range(-6.0, 6.0; length = 101)
-
-grid = (xg, yg, zg)
-
-mapper = AttractorsViaRecurrences(thomas, grid)
-
-id = mapper([1, 2, 3.0])
-A = extract_attractors(mapper)[id]
-
-mfs_algo = MFSBruteForce(1000, 1000, 0.99)
-search_area = (-6.0, 6.0)
-shocks = map(u0 -> minimal_fatal_shock(mapper, u0, search_area, mfs_algo), A)
-
-using CairoMakie
-using LinearAlgebra: norm
-using Statistics: mean
-
-shock_norms = norm.(shocks)
-mean_shock = mean(shocks)
-mean_norm = mean(shock_norms)
-
-scatter(columns(A)...; color = shock_norms)
 
 
 # %% Basin instability in predator pray (phase tipping)
@@ -198,3 +163,48 @@ basin_instabilities[1]
 # If this is true, there exists basin instability
 any(isequal(false), basin_instabilities[1])
 any(isequal(false), basin_instabilities[2])
+
+
+
+# %% MFS of Thomas cyclical
+using DynamicalSystems
+
+function thomas_rule(u, p, t)
+    x,y,z = u
+    b = p[1]
+    xdot = sin(y) - b*x
+    ydot = sin(z) - b*y
+    zdot = sin(x) - b*z
+    return SVector(xdot, ydot, zdot)
+end
+
+thomas = CoupledODEs(thomas_rule, rand(3), [0.17])
+xg = yg = zg = range(-6.0, 6.0; length = 100)
+
+grid = (xg, yg, zg)
+
+mapper = AttractorsViaRecurrences(thomas, grid)
+
+id = mapper([1, 2, 3.0])
+A = extract_attractors(mapper)[id]
+
+mfs_algo = MFSBruteForce(1000, 1000, 0.99)
+search_area = (-6.0, 6.0)
+shocks = map(u0 -> minimal_fatal_shock(mapper, u0, search_area, mfs_algo), A)
+
+using CairoMakie
+using LinearAlgebra: norm
+using Statistics: mean
+
+shock_norms = norm.(shocks)
+mean_shock = mean(shocks)
+min_norm = minimum(shock_norms)
+shock_norms ./= min_norm/10
+
+fig = Figure(size = (800, 400))
+for (i, a) in enumerate((0.7, 4.0))
+    scatter(fig[1,i], columns(A)...; color = shock_norms,
+        alpha = 0.5, axis = (type = Axis3, azimuth = a), markersize = 15,
+    )
+end
+fig
